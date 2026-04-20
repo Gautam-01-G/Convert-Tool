@@ -2,22 +2,42 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>G Converter Tool</title>
+<title>Excel Converter</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdf-table-extractor@1.0.0/dist/pdf-table-extractor.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-body { font-family: Montserrat, sans-serif; background:#000; color:#fff; text-align:center; }
-h1 { color:#A855F7; }
-.box { border:1px solid #A855F7; padding:20px; margin:20px; border-radius:10px; }
-button { background:#A855F7; color:#fff; border:none; padding:10px 20px; cursor:pointer; }
-input { margin:10px; }
+body {
+ font-family: Montserrat, sans-serif;
+ background: #000;
+ color: #fff;
+ text-align: center;
+}
+h1 {
+ color: #A855F7;
+}
+.box {
+ border: 1px solid #A855F7;
+ padding: 20px;
+ margin: 20px;
+ border-radius: 10px;
+}
+button {
+ background: #A855F7;
+ color: #fff;
+ border: none;
+ padding: 10px 20px;
+ cursor: pointer;
+}
+input {
+ margin: 10px;
+}
 </style>
 </head>
 <body>
-<h1>G Converter</h1>
+<h1>Excel Converter</h1>
 <div class="box">
 <h2>📄 PDF → Excel</h2>
 <input type="file" id="pdfFile">
@@ -29,34 +49,26 @@ input { margin:10px; }
 <button onclick="imagesToPDF()">Convert</button>
 </div>
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 function pdfToExcel() {
- const fileInput = document.getElementById('pdfFile');
- const file = fileInput.files[0];
- if (!file) {
-   alert("Upload PDF first");
-   return;
- }
- alert("Processing started..."); // debug
+ const file = document.getElementById('pdfFile').files[0];
+ if (!file) return alert("Upload PDF");
+ alert("Processing...");
  const reader = new FileReader();
- reader.onload = function () {
-   if (typeof pdfTableExtractor === "undefined") {
-     alert("Library not loaded!");
-     return;
+ reader.onload = async function() {
+   const pdf = await pdfjsLib.getDocument({data: reader.result}).promise;
+   let rows = [];
+   for (let i = 1; i <= pdf.numPages; i++) {
+     let page = await pdf.getPage(i);
+     let content = await page.getTextContent();
+     let row = content.items.map(item => item.str);
+     rows.push(row);
    }
-   pdfTableExtractor(reader.result).then(result => {
-     if (!result.pageTables.length || !result.pageTables[0].tables.length) {
-       alert("No table detected");
-       return;
-     }
-     let data = result.pageTables[0].tables[0];
-     let ws = XLSX.utils.aoa_to_sheet(data);
-     let wb = XLSX.utils.book_new();
-     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-     XLSX.writeFile(wb, "output.xlsx");
-   }).catch(err => {
-     alert("Error: " + err);
-   });
+   let ws = XLSX.utils.aoa_to_sheet(rows);
+   let wb = XLSX.utils.book_new();
+   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+   XLSX.writeFile(wb, "output.xlsx");
  };
  reader.readAsArrayBuffer(file);
 }
