@@ -31,30 +31,36 @@ input { margin:10px; }
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 function pdfToExcel() {
- const file = document.getElementById('pdfFile').files[0];
- if (!file) return alert("Upload PDF");
+ const fileInput = document.getElementById('pdfFile');
+ const file = fileInput.files[0];
+ if (!file) {
+   alert("Upload PDF first");
+   return;
+ }
+ alert("Processing started..."); // debug
  const reader = new FileReader();
- reader.onload = function() {
-   try {
-     pdfTableExtractor(reader.result).then(result => {
-       if (!result.pageTables.length || !result.pageTables[0].tables.length) {
-         alert("No table detected in PDF");
-         return;
-       }
-       let data = result.pageTables[0].tables[0];
-       let ws = XLSX.utils.aoa_to_sheet(data);
-       let wb = XLSX.utils.book_new();
-       XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-       XLSX.writeFile(wb, "output.xlsx");
-     }).catch(err => {
-       alert("Error: " + err);
-     });
-   } catch (e) {
-     alert("Error: " + e.message);
+ reader.onload = function () {
+   if (typeof pdfTableExtractor === "undefined") {
+     alert("Library not loaded!");
+     return;
    }
+   pdfTableExtractor(reader.result).then(result => {
+     if (!result.pageTables.length || !result.pageTables[0].tables.length) {
+       alert("No table detected");
+       return;
+     }
+     let data = result.pageTables[0].tables[0];
+     let ws = XLSX.utils.aoa_to_sheet(data);
+     let wb = XLSX.utils.book_new();
+     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+     XLSX.writeFile(wb, "output.xlsx");
+   }).catch(err => {
+     alert("Error: " + err);
+   });
  };
  reader.readAsArrayBuffer(file);
 }
+</script>
 async function imagesToPDF() {
  const { jsPDF } = window.jspdf;
  const files = document.getElementById('images').files;
