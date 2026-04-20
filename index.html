@@ -5,6 +5,7 @@
 <title>Viewtics Converter Tool</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-table-extractor/dist/pdf-table-extractor.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -28,23 +29,18 @@ input { margin:10px; }
 <button onclick="imagesToPDF()">Convert</button>
 </div>
 <script>
-async function pdfToExcel() {
+function pdfToExcel() {
  const file = document.getElementById('pdfFile').files[0];
  if (!file) return alert("Upload PDF");
  const reader = new FileReader();
- reader.onload = async function() {
-   const pdf = await pdfjsLib.getDocument({data: reader.result}).promise;
-   let text = "";
-   for (let i = 1; i <= pdf.numPages; i++) {
-     let page = await pdf.getPage(i);
-     let content = await page.getTextContent();
-     content.items.forEach(item => text += item.str + " ");
-     text += "\n";
-   }
-   let wb = XLSX.utils.book_new();
-   let ws = XLSX.utils.aoa_to_sheet([[text]]);
-   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-   XLSX.writeFile(wb, "output.xlsx");
+ reader.onload = function() {
+   pdfTableExtractor(reader.result).then(result => {
+     let data = result.pageTables[0].tables[0];
+     let ws = XLSX.utils.aoa_to_sheet(data);
+     let wb = XLSX.utils.book_new();
+     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+     XLSX.writeFile(wb, "output.xlsx");
+   });
  };
  reader.readAsArrayBuffer(file);
 }
